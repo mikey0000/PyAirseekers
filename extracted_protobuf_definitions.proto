@@ -1,0 +1,87 @@
+// Extracted/Reconstructed Protobuf Definitions from Airseekers App
+// Based on analysis of libapp.so and strings.txt
+
+syntax = "proto3";
+
+package airseekers.mower_proto;
+
+// Common enums and messages
+enum CommonStatus {
+  UNKNOWN = 0;
+  SUCCESS = 1;
+  FAILED = 2;
+}
+
+// Map-related messages
+message Create_Map_Req {
+  // Request to create a new mowing map
+}
+
+message CoveragePath_Err {
+  // Error related to coverage path calculation
+  string error_message = 1;
+  int32 error_code = 2;
+}
+
+// Task-related messages  
+message Set_Mow_Task_Params_Rsp {
+  // Response for setting mowing task parameters
+  CommonStatus status = 1;
+  string message = 2;
+}
+
+message TM_In_Place {
+  // Task management in-place operation
+  int32 task_id = 1;
+  string operation = 2;
+}
+
+// Network-related messages
+// Based on package:airseekers/src/mower_proto/generate/network.pb.dart
+
+// Status-related messages  
+// Based on package:airseekers/src/mower_proto/generate/status.pb.dart
+
+// Teleop (teleoperation) messages
+// Based on package:airseekers/src/mower_proto/generate/teleop.pb.dart
+
+// RTK (Real-Time Kinematic) messages
+// Based on package:airseekers/src/mower_proto/generate/rtk.pb.dart
+
+// Bluetooth descriptor messages
+message BmDescriptorData {
+  string descriptor_uuid = 1;
+  bytes data = 2;
+}
+
+message BmBluetoothDescriptor {
+  string remote_id = 1;
+  string service_uuid = 2;
+  string characteristic_uuid = 3;
+  string descriptor_uuid = 4;
+}
+
+// Message handling
+message MessageReceived {
+  string topic = 1;
+  bytes payload = 2;
+  int64 timestamp = 3;
+}
+
+// Error handling
+message ProtobufError {
+  string message = 1;
+  int32 code = 2;
+}
+
+// Note: This is a reconstructed .proto file based on string analysis.
+// The actual message structures may differ from this reconstruction.
+// Found protobuf packages in the app:
+// - airseekers/src/mower_proto/generate/common.pb.dart
+// - airseekers/src/mower_proto/generate/map.pb.dart  
+// - airseekers/src/mower_proto/generate/status.pb.dart
+// - airseekers/src/mower_proto/generate/task.pb.dart
+// - airseekers/src/mower_proto/generate/network.pb.dart
+// - airseekers/src/mower_proto/generate/teleop.pb.dart
+// - airseekers/src/mower_proto/generate/msg.pb.dart
+// - airseekers/src/mower_proto/generate/rtk.pb.dart
