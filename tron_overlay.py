@@ -23,7 +23,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import aiohttp
 from api_client import AirseekersAPI
 
-SN = "1001024503001558"
+SN = os.environ.get('AIRSEEKERS_SN', '')
+if not SN:
+    raise ValueError("Set AIRSEEKERS_SN environment variable to your device serial number")
 ORTHO_CRS = "EPSG:32755"
 
 # Feature type mapping
