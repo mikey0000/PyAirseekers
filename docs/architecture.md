@@ -21,9 +21,12 @@ are in `CONSTITUTION.md`; the reasons are in `decisions.md`.
 │ live.py — whep_play / whep_stop                               │
 │   SDP offer → SRS → SDP answer. No media handling (D10).      │
 ├──────────────────────────────────────────────────────────────┤
+│ local/control.py — MowerController (D15)                      │
+│   /controller/ctrl stop|pause: schema guard, call, confirm    │
+│   result. The library's only service caller.                  │
 │ local/foxglove.py — FoxgloveClient                            │
-│   foxglove.websocket.v1: serverInfo, advertise, subscribe,    │
-│   binary message frames → decoded ROS1 objects. Read-only.    │
+│   foxglove.websocket.v1: serverInfo, advertise(+Services),    │
+│   subscribe → decoded ROS1 objects; call_service primitive.   │
 │ local/ros1.py — Typestore, parse_msg_text, to_type_path       │
 │   Registers ROS1 .msg schemas at runtime; decodes payloads.   │
 ├──────────────────────────────────────────────────────────────┤
@@ -97,13 +100,33 @@ host: await whep_stop(session, stream)                  # DELETE Location
 ```
 FoxgloveClient.connect()     ws://<ip>:8765, subprotocol foxglove.websocket.v1
   ← serverInfo, advertise(channels with base64 ROS1 schemas)
+  tears down any earlier connection first (D16)
+  starts the receive loop (channels, services, status, responses);
+  a malformed frame is dropped, not fatal
 FoxgloveClient.subscribe(topics, on_message, on_connection)
-  → registers each schema with Typestore, sends subscribe, starts receive loop
+  → registers each schema with Typestore, sends subscribe
   ← binary 0x01 frames → Typestore.deserialize_ros1 → on_message(topic, schema, obj)
-  loop ends (close/error) → on_connection(False); reconnecting is the host's job
+  loop ends (close/error) → pending calls fail, socket closed (connected False),
+  on_connection(False); reconnecting is the host's job.
+  disconnect() is not a loss: it does not call on_connection.
 ```
 
-### 2.5 Errors
+### 2.5 A local command
+
+```
+MowerController.stop()
+  → client.service("/controller/ctrl")   not connected → AirseekersTransportError
+                                          no "services" capability / not advertised
+                                          (waits up to CONNECT_TIMEOUT) → AirseekersServiceError
+  → schema guard: request == ["string arg"], response == ["int32 result", "string message"]
+                                          else AirseekersServiceError, nothing sent
+  → client.call_service(service, encode_string("stop"))   (the checked Service, by id)
+      0x02 frame → 0x03 frame (→ bytes) | serviceCallFailure → AirseekersServiceError
+                                          | no answer in SERVICE_CALL_TIMEOUT → AirseekersTransportError
+  → result != 0 → AirseekersServiceError(code=result); else TriggerResult
+```
+
+### 2.6 Errors
 
 | Observation | Exception | State change | Caller should |
 |---|---|---|---|
@@ -115,6 +138,8 @@ FoxgloveClient.subscribe(topics, on_message, on_connection)
 | envelope `code` ≠ 0, not an empty code | `AirseekersApiError` | none | inspect `code` (e.g. 309 offline, -107 not allowed) |
 | WHEP offer refused | `AirseekersApiError(code=status)` | none | fetch a fresh URL and retry |
 | Foxglove bridge unreachable or not Foxglove | `AirseekersTransportError` | none | retry later |
+| local command: schema changed, rejected (`result != 0`), `serviceCallFailure` | `AirseekersServiceError` | none | report; do not retry blindly |
+| local command: no answer in time, connection lost | `AirseekersTransportError` | pending calls failed | fall back to the cloud command |
 
 ## 3. Single homes
 
@@ -129,6 +154,9 @@ FoxgloveClient.subscribe(topics, on_message, on_connection)
 | How is a secret kept out of `repr`? | `field(repr=False)` in `models.py`; custom `__repr__` on `CloudTransport`, `AirseekersCloud` |
 | Which host do we talk to? | `CloudTransport.base_url` (`const.API_BASE_URL`, then login `host`) |
 | `pkg/Type` → `pkg/msg/Type`? | `local/ros1.py::to_type_path` |
+| Schema text: plain or base64? | `local/foxglove.py::decode_schema` |
+| ROS1 string bytes / schema field lines? | `local/ros1.py::encode_string` / `schema_fields` |
+| Which local commands are allowed, and is the schema still the verified one? | `local/control.py` (D15) |
 | What is the public API? | `pyairseekers/__init__.py::__all__` |
 
 ## 4. Extension recipes
@@ -147,14 +175,20 @@ Never compare a raw code at a call site.
 `models.py` with `repr=False` on anything secret; decode in the one API
 method; a missing required field raises `AirseekersApiError` naming it.
 
-**A local command**: not without a decision entry (CONSTITUTION §2).
+**A local command**: a decision entry citing on-device verification of the
+schema and the command (CONSTITUTION §2), then a method on `MowerController`
+(or a sibling in `local/control.py`) with its own schema guard and response
+check, a fake-bridge service, tests for success, rejection, failure, timeout
+and schema change, and a row in `docs/api/local.md`. Never call
+`call_service` from anywhere else.
 
 **A new transport (MQTT, BLE)**: promote it out of D9 by giving it a protocol
 seam, a fake, tests, and a page under `docs/api/`, documented here first.
 
 ## 5. What the library does not do
 
-- It does not send commands to the mower over the local bridge.
+- It does not publish topics on the local bridge, and sends no local command
+  that a decision has not verified (D15).
 - It does not handle WebRTC media; it brokers the SDP exchange only.
 - It does not poll, schedule, reconnect or keep tokens warm. Hosts call; the
   library renews when a call needs it.

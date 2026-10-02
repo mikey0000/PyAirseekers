@@ -11,9 +11,11 @@ change. The change is the working-tree diff unless the prompt names files.
 
 Check, in this order:
 
-1. **Safety** (blocking): anything in `pyairseekers/local/` that publishes,
-   advertises or calls a service; a cloud command reachable from a test
-   outside the `live` tier.
+1. **Safety** (blocking): anything in `pyairseekers/local/` that publishes or
+   advertises a channel; a `call_service` caller outside `local/control.py`;
+   a local command without a decision citing on-device verification, a
+   schema guard and a response check (CONSTITUTION §2, D15); a cloud or local
+   command reachable from a test outside the `live` tier.
 2. **Constitution violations** (blocking): `cloud`/`local`/`live` importing
    each other; secrets (password, tokens, IoT keys, the live-stream URL) in
    logs, `repr` or exception messages; a non-success response returned as
@@ -23,7 +25,7 @@ Check, in this order:
    `docs/api/cloud.md`; an evidence level raised to verified without a
    capture cited in the change.
 4. **Error mapping** (blocking): every status/envelope path maps to the
-   exception in architecture §2.5; `AirseekersTransportError` never mutates
+   exception in architecture §2.6; `AirseekersTransportError` never mutates
    auth state; a rejected login is terminal and fails fast.
 5. **Style** (major/minor): docstrings missing on public names, `Any` in public
    signatures, magic numbers, imports inside functions, broad `except`

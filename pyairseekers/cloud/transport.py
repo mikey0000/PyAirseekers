@@ -107,6 +107,9 @@ class CloudTransport:
     def _http(self) -> aiohttp.ClientSession:
         if self._session is None:
             self._session = aiohttp.ClientSession()
+        if self._session.closed:
+            # A host closing its shared session (e.g. on shutdown) is a transport condition
+            raise AirseekersTransportError("HTTP session is closed")
         return self._session
 
     def _headers(self, token: str | None) -> dict[str, str]:

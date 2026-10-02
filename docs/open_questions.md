@@ -53,16 +53,15 @@ firmware upgrade (`device_id` versus `sn`).
 Does the login `host` always carry a scheme, and what do non-EU accounts get?
 Today: switch only to an absolute `http(s)` URL.
 
-## Q10. MQTT topics
+## Q10. MQTT topics — mostly resolved
 
-The certificate endpoint is known; topic names (`device/{id}/status`) were
-guessed. Closes with a broker capture.
-
-## Q11. Local command schemas
-
-`mower_msgs/Trigger` request schema and command codes, and safe-stop via
-`/controller/ctrl`, must be read from `advertiseServices` and tested on a
-mower before any local command (D3).
+Resolved from app v1.7.8 decompile (see `docs/api/mqtt.md`): topics are
+`common/app/{mqtt_client_id}/{sn}/be/up` (uplink) and `.../be/down` (downlink,
+subscribed with `+` for `sn`); payload is a binary `Msg` protobuf keyed by the
+(recovered) `MsgType` enum; MQTT v5 over mutual TLS, keepAlive 5 s, subscribe
+QoS 1. Still open: broker host/port and cert material are runtime-only (from the
+`iot-cert` bundle, not in the binary), protobuf field names are stripped, and
+publish QoS/retain are inferred defaults. Closes fully with a broker capture.
 
 ## Q12. Heartbeat interval
 
@@ -71,3 +70,43 @@ Two app heartbeats were captured 38 s apart (`x-app-request-time`
 `LIVE_HEARTBEAT_INTERVAL_S = 20`, inside that gap even if the two were not
 consecutive. Closes with a longer capture (several beats in a row) and the
 time a stream survives without one.
+
+## Q13. Observed read-only endpoint shapes
+
+Seven read-only GET endpoints were added from app v1.7.8 decompile (method and
+query params confirmed in `network/http_client.dart`): `device/map/v2`,
+`device/map/geo-data` (`sn`+`map_id`), `device/explore-map/latest`,
+`device/maintenance/list`, `device/sim/activation-status`,
+`device/sim/package-info`, `live/camera-params` — all GET with `sn`. Their
+*response* bodies are not yet verified against a real Tron, so the wrappers
+return the raw mapping. Closes with a capture of each response (promotes them
+to verified in `docs/api/cloud.md`).
+
+## Q14. Cloud teleop: ranges and stop-on-silence
+
+`move_control` sends `{sn, linear_x, angular_z}`; the decompile suggests both
+are normalised to about ±1.0 (joystick × 0.01, deadzone below ~0.10), resent
+at least every ~250 ms, and stopped by sending `(0, 0)` twice ~50 ms apart.
+Unknown: whether the robot (or the cloud) stops the mower when commands stop
+arriving, and after how long. Today: one command per call; the host owns the
+stream and the stop (D14); the Home Assistant integration does not use it.
+Closes with an on-device test: drive briefly, stop sending without `(0, 0)`,
+and time how long the mower keeps moving (from a safe distance, with the
+local `/controller/ctrl stop` ready).
+
+## Q15. How do local controller commands relate to the cloud task?
+
+`/controller/ctrl` drives the low-level controller inside a task's behaviour
+tree. Unknown: after a local `pause`, does cloud `full-status` report the task
+as paused (`state == 2`), and does cloud `task/resume` undo it, or only local
+`resume`? After a local `stop`, is the task ended or left as a legacy task?
+Today: hosts should not mix a local pause with a cloud resume. Closes by
+pausing locally and reading `full-status`, then resuming each way.
+
+## Q16. Has `resume` been exercised on a mower?
+
+The `/controller/ctrl` argument `resume` is known from the schema and from
+the behaviour-tree callers, but only `stop` is recorded as tested on
+hardware. Today: `MowerController` offers `stop` and `pause` only (D15).
+Closes when `resume` is run on a Tron (after a local `pause`, with `stop`
+ready) and its effect and `result` are recorded; then add the method.

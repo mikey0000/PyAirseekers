@@ -27,6 +27,7 @@ Assistant integration, reads locally and writes through the cloud.
 the bridge exposes raw control (`/cmd_vel` bypasses the mower's own logic) and
 neither the command schemas nor safe-stop have been verified on a device.
 Superseding this requires the evidence listed in CONSTITUTION §2.
+Superseded for `/controller/ctrl` `stop` and `pause` by D15.
 
 ## D4. Cloud responses are mappings until verified
 
@@ -106,3 +107,60 @@ interface it stands for changes.
 token that plays the camera. It is never logged, never put in an exception,
 and `LiveStream` hides its resource URL from `repr`. Reason: anyone with the
 URL can watch the camera until it expires.
+
+## D14. Cloud teleop (`move-control`) is wrapped; local teleop is not
+
+`move_control(sn, linear_x, angular_z)` posts `/api/web/live/move-control`
+(body `{sn, linear_x, angular_z}`, confirmed from app v1.7.8 decompile). This
+is a **cloud** motion command on the same footing as `start_task`/`dock`. It
+does **not** touch the local bridge, so CONSTITUTION §2 is untouched. Whether
+the robot stops by itself when commands stop arriving (a host that crashes
+mid-move) is **unknown** (Q14); until that is answered hosts must not expose
+`move_control` without their own stop-on-release handling, and the Home
+Assistant integration does not wrap it. Evidence is `observed` until exercised
+on a Tron (Q14). Reason/scope: the method does one thing — send one velocity command;
+it does not loop. Teleop needs a repeating command stream and a stop; keeping
+the device moving and stopping it are the host's responsibility, exactly like
+`live_heartbeat`. The docstring says so.
+
+## D15. Local controller commands: stop, pause, resume
+
+Supersedes D3 for one service. The `mower_msgs/Trigger` schema behind
+`/controller/ctrl` was read live from `advertiseServices` (request
+`string arg`; response `int32 result`, `string message`), the arguments
+`stop`, `pause` and `resume` were confirmed, and safe-stop (`stop`) was
+verified on a Tron over the bridge (2026-10, recorded in
+airseekers-tron-ha-local `docs/protocol-reference.md`). The service-call wire
+path (`0x02` request / `0x03` response / `serviceCallFailure`) was verified
+against the live bridge with a benign service.
+
+So `FoxgloveClient` gains `call_service(service, request)` as a raw transport
+primitive, public so verification scripts can use it, and
+`local/control.py::MowerController` is the library's only caller. Each
+command: refuses a bridge without the `services` capability; refuses if the
+advertised request or response schema differs from the verified one (a
+firmware change must not be driven blind); confirms the response and raises
+`AirseekersServiceError` on a non-zero `result` or a `serviceCallFailure`;
+raises `AirseekersTransportError` if no answer arrives within
+`SERVICE_CALL_TIMEOUT`. Reason: a local stop works without the internet and
+reaches the mower faster than the cloud.
+
+`resume` is held back although the argument is known: it sets a bladed mower
+moving, and only `stop` is recorded as exercised on hardware (Q16). Not
+opened either: `publish` (and with it `/cmd_vel`, whose watchdog is unverified),
+`/controller/dock/ctrl` (arguments unknown), `/cutter_control` (schema known,
+not exercised), and every power service. `/controller/ctrl` is the low-level
+controller inside a task's behaviour tree, not the task layer, so whether a
+local `pause` is visible to the cloud's task state is Q15.
+
+## D16. The Foxglove client owns its connection lifecycle
+
+`connect()` tears down any previous connection first; the receive loop starts
+in `connect()` (so service adverts and call responses are handled before
+`subscribe`), survives a malformed frame by dropping it, and when it ends it
+fails pending calls and closes the socket so `connected` turns False. The
+connection callback reports unexpected loss only; `disconnect()` clears it
+and forgets channels, schemas and services. Reason: the review of D15 found a
+single bad frame ended the stream while `connected` stayed True, so Home
+Assistant's reconnect loop never ran, and a second `connect()` left the old
+loop failing the new connection's calls.

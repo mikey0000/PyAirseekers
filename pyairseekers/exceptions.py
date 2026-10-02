@@ -29,3 +29,11 @@ class AirseekersAuthError(AirseekersApiError):
     Terminal: the client refuses further calls without network I/O until
     the host supplies new credentials (D5).
     """
+
+
+class AirseekersServiceError(AirseekersApiError):
+    """The mower's Foxglove bridge failed or rejected a ROS service call.
+
+    ``code`` carries the service's own result code when it answered with one;
+    ``path`` is the service name.
+    """

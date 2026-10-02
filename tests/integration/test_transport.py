@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import TYPE_CHECKING
 
+import aiohttp
 import pytest
 
 from pyairseekers import AirseekersApiError, AirseekersAuthError, AirseekersCloud, AirseekersTransportError
@@ -132,3 +133,14 @@ class TestErrors:
         async with AirseekersCloud(EMAIL, PASSWORD, base_url="http://127.0.0.1:9") as cloud:
             with pytest.raises(AirseekersTransportError):
                 await cloud.get_devices()
+
+
+@pytest.mark.regression
+async def test_closed_host_session_is_a_transport_error(fake_cloud: FakeCloud) -> None:
+    """A host's closed session raised aiohttp's bare RuntimeError("Session is closed") during shutdown."""
+    session = aiohttp.ClientSession()
+    await session.close()
+    cloud = AirseekersCloud(EMAIL, PASSWORD, session, base_url=fake_cloud.state.base_url)
+
+    with pytest.raises(AirseekersTransportError, match="session is closed"):
+        await cloud.login()

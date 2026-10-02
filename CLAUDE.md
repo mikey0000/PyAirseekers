@@ -7,8 +7,9 @@ first; it is short and it is binding.
 
 `pyairseekers`: an async Python client for the Airseekers Tron robotic mower.
 Three independent transports: the cloud REST API (commands, settings, account
-data), the mower's local Foxglove bridge (read-only telemetry), and WHEP live
-video on the vendor's SRS server. MQTT and BLE are experimental (D9). There is
+data), the mower's local Foxglove bridge (telemetry, plus the verified
+`stop`/`pause` controller commands, D15), and WHEP live video on the
+vendor's SRS server. MQTT and BLE are experimental (D9). There is
 no published API; everything is evidence-graded in `docs/api/`.
 
 ## Commands
@@ -39,8 +40,10 @@ uv run pre-commit run --all-files
 
 ## Rules of work
 
-- **Safety first.** No local command path (CONSTITUTION §2). Cloud commands
-  move a real mower: never call one from a test outside the `live` tier.
+- **Safety first.** Local commands only through `local/control.py`, only once
+  verified on a mower (CONSTITUTION §2, D15); never `publish`. Cloud and
+  local commands move a real mower: never call one from a test outside the
+  `live` tier.
 - **Audit before adding.** Every concern has a single home
   (`architecture.md` §3). If you are writing a check that exists elsewhere,
   stop and extend the existing site.
@@ -67,12 +70,12 @@ uv run pre-commit run --all-files
 pyairseekers/
   __init__.py  const.py  exceptions.py  models.py  live.py
   cloud/       transport.py (CloudTransport, Requester)  api.py (AirseekersCloud)
-  local/       foxglove.py (FoxgloveClient)  ros1.py (runtime ROS1 decoder)
+  local/       foxglove.py (FoxgloveClient)  control.py (MowerController, D15)  ros1.py
   mqtt.py  ble.py              experimental (D9)
 tests/
   conftest.py  _helpers.py      secret-leak guard, shared builders
   unit/        _fakes.py  cloud/ local/ test_models.py
-  integration/ fakeserver/ (cloud + SRS, Foxglove bridge)  test_transport.py test_live.py test_foxglove.py
+  integration/ fakeserver/ (cloud + SRS, Foxglove bridge)  test_transport.py test_live.py test_foxglove.py test_control.py
   meta/        test_conventions.py
 docs/          architecture.md code_style.md testing.md decisions.md backlog.md open_questions.md api/
 examples/      basic.py

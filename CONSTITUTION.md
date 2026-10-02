@@ -15,13 +15,18 @@ is promoted to verified without a capture. Where the evidence is silent, the
 gap is a `Qn` in `docs/open_questions.md` and the code takes the conservative
 reading, stated in a docstring.
 
-## 2. The local bridge is read-only
+## 2. Local commands only once verified
 
 The mower has blades and drives itself. `pyairseekers.local` subscribes and
-decodes; it does not publish topics or call services. A local command path
-needs, first, a decision entry citing on-device verification of the command
-schema and of safe-stop (`/controller/ctrl`), and second, a confirmed service
-response for every motion command. Commands go through the cloud until then.
+decodes freely. The library's own commands go only through
+`local/control.py`, only once a decision entry cites on-device verification
+of that command and of safe-stop, and every call checks the advertised schema
+still matches and confirms the service response. Today that is
+`/controller/ctrl` with `stop` and `pause` (D15). `FoxgloveClient.call_service`
+is a raw primitive for verification tooling; a host that calls it directly
+owns what it sends. Publishing topics (`/cmd_vel`), blade, dock and power
+services stay closed until a decision opens them; everything else goes
+through the cloud.
 
 ## 3. Transports are independent; layers point one way
 

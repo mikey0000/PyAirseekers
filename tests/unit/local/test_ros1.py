@@ -10,7 +10,9 @@ from pyairseekers.local.ros1 import (
     RosTime,
     Typestore,
     _FieldDef,
+    encode_string,
     parse_msg_text,
+    schema_fields,
 )
 
 # ---------------------------------------------------------------------------
@@ -267,3 +269,19 @@ class TestTypestore:
         assert abs(msg.voltage - 25.2) < 0.1
         assert abs(msg.current - (-1.5)) < 1e-5
         assert abs(msg.temperature - 35.0) < 0.1
+
+
+class TestEncodeString:
+    def test_is_length_prefixed_utf8(self) -> None:
+        assert encode_string("stop") == b"\x04\x00\x00\x00stop"
+
+    def test_length_counts_bytes_not_characters(self) -> None:
+        assert encode_string("é") == b"\x02\x00\x00\x00\xc3\xa9"
+
+
+class TestSchemaFields:
+    def test_ignores_comments_blank_lines_and_spacing(self) -> None:
+        assert schema_fields("# header\nstring   arg  # stop/pause\n\nint32 result\n") == ["string arg", "int32 result"]
+
+    def test_comment_only_schema_has_no_fields(self) -> None:
+        assert schema_fields("# nothing here\n\n") == []

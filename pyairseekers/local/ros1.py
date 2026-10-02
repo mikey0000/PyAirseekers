@@ -46,6 +46,17 @@ class RosTime:
     nsecs: int = 0
 
 
+def encode_string(value: str) -> bytes:
+    """Serialise a ROS1 ``string``: little-endian uint32 length, then UTF-8 bytes."""
+    raw = value.encode()
+    return struct.pack("<I", len(raw)) + raw
+
+
+def schema_fields(schema: str) -> list[str]:
+    """Return a .msg/.srv schema's field lines, without comments or blank lines."""
+    return [line for raw in schema.splitlines() if (line := " ".join(raw.split("#", 1)[0].split()))]
+
+
 def to_type_path(name: str) -> str:
     """Turn a ROS1 schema name ``pkg/Type`` into a type path ``pkg/msg/Type``."""
     parts = name.split("/")
