@@ -2,7 +2,8 @@
 
 Module `pyairseekers/local/`. The mower runs `ros-foxglove-bridge` (ROS1
 Noetic) on `ws://<mower-ip>:8765`, subprotocol `foxglove.websocket.v1`, no
-authentication. Read freely; command only what D15 allows.
+authentication. Read freely; command only what D15 and D17 allow. The same
+host also serves the HTTP API below on port 13344.
 
 ## Protocol as used
 
@@ -35,6 +36,24 @@ live bridge.
 
 Topic publishing (`/cmd_vel`) is not implemented: it bypasses the mower's
 control logic and its watchdog is unverified.
+
+## HTTP API (`mower_logic`, port 13344)
+
+`LocalApi(host, session)`. No authentication; listens on every interface.
+Every response is an envelope `{"successed": bool, "errorCode": int, "msg":
+str, "data": ...}`; `successed` false or a non-zero `errorCode` raises
+`AirseekersApiError(code=errorCode)`.
+
+| Method | Path | Library | Evidence |
+|---|---|---|---|
+| GET | `/map/list` | `map_list()` | verified: `[{mapId, mapName, createTime, geoData}]`, `geoData` in the local frame (metres from the dock; `properties.type` 1 work area, 3 channel, 4 no-go, 5 dock zone, 6 charge point, 7 undock point, 8 RTK base) |
+| GET | `/task/getCoveragePath` | `coverage_path()` | observed (vendor spec) |
+| GET | `/task/getWalkPath?point_index=` | `walk_path(i)` | observed (vendor spec) |
+| POST | `/task/start` `{mapName}` | `start_task(name)` | observed (vendor spec); used per D17 |
+| GET | `/task/pause` `/task/resume` `/task/stop` | `pause_task()` `resume_task()` `stop_task()` | observed (vendor spec); used per D17 |
+| GET | `/task/dock` `/task/unDock` | `dock()` `undock()` | observed (vendor spec); used per D17 |
+| GET | `/robot/task/info` | not wrapped | WebSocket task feed (spec): `startTime`, `state` idle/running/paused, `taskName` |
+| POST/GET | `/map/save`, `/map/delete`, `/maping/*` | **not wrapped** | `/map/save` repointed the active map in testing (D17) |
 
 ## Topics read by the Home Assistant integration (verified)
 

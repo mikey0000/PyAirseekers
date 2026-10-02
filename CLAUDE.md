@@ -8,7 +8,8 @@ first; it is short and it is binding.
 `pyairseekers`: an async Python client for the Airseekers Tron robotic mower.
 Three independent transports: the cloud REST API (commands, settings, account
 data), the mower's local Foxglove bridge (telemetry, plus the verified
-`stop`/`pause` controller commands, D15), and WHEP live video on the
+`stop`/`pause` controller commands, D15), its HTTP API on port 13344 (maps
+and, by owner decision, task commands, D17), and WHEP live video on the
 vendor's SRS server. MQTT and BLE are experimental (D9). There is
 no published API; everything is evidence-graded in `docs/api/`.
 
@@ -70,12 +71,12 @@ uv run pre-commit run --all-files
 pyairseekers/
   __init__.py  const.py  exceptions.py  models.py  live.py
   cloud/       transport.py (CloudTransport, Requester)  api.py (AirseekersCloud)
-  local/       foxglove.py (FoxgloveClient)  control.py (MowerController, D15)  ros1.py
+  local/       foxglove.py (FoxgloveClient)  control.py (MowerController, D15)  http.py (LocalApi, D17)  ros1.py
   mqtt.py  ble.py              experimental (D9)
 tests/
   conftest.py  _helpers.py      secret-leak guard, shared builders
   unit/        _fakes.py  cloud/ local/ test_models.py
-  integration/ fakeserver/ (cloud + SRS, Foxglove bridge)  test_transport.py test_live.py test_foxglove.py test_control.py
+  integration/ fakeserver/ (cloud + SRS, Foxglove bridge)  test_transport.py test_live.py test_foxglove.py test_control.py test_http.py
   meta/        test_conventions.py
 docs/          architecture.md code_style.md testing.md decisions.md backlog.md open_questions.md api/
 examples/      basic.py

@@ -22,7 +22,9 @@ decodes freely. The library's own commands go only through
 `local/control.py`, only once a decision entry cites on-device verification
 of that command and of safe-stop, and every call checks the advertised schema
 still matches and confirms the service response. Today that is
-`/controller/ctrl` with `stop` and `pause` (D15). `FoxgloveClient.call_service`
+`/controller/ctrl` with `stop` and `pause` (D15), and, as a recorded
+owner-directed exception, the HTTP task commands of `local/http.py` (D17).
+`FoxgloveClient.call_service`
 is a raw primitive for verification tooling; a host that calls it directly
 owns what it sends. Publishing topics (`/cmd_vel`), blade, dock and power
 services stay closed until a decision opens them; everything else goes

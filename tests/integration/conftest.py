@@ -9,6 +9,7 @@ import pytest
 
 from tests.integration.fakeserver.cloud import FakeCloud
 from tests.integration.fakeserver.foxglove import FakeBridge
+from tests.integration.fakeserver.mower_http import FakeMowerHttp
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -31,4 +32,13 @@ async def fake_bridge() -> AsyncIterator[tuple[FakeBridge, str, int]]:
     await server.start_server()
     yield bridge, str(server.host), int(server.port or 0)
     await bridge.outbox.put(None)
+    await server.close()
+
+
+@pytest.fixture
+async def fake_mower_http() -> AsyncIterator[tuple[FakeMowerHttp, str, int]]:
+    mower = FakeMowerHttp()
+    server = TestServer(mower.app)
+    await server.start_server()
+    yield mower, str(server.host), int(server.port or 0)
     await server.close()

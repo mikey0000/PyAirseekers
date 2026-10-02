@@ -2,11 +2,13 @@
 
 from pyairseekers.local.control import ControllerCommand, MowerController, TriggerResult
 from pyairseekers.local.foxglove import Channel, FoxgloveClient, ServerInfo, Service
+from pyairseekers.local.http import LocalApi
 
 __all__ = [
     "Channel",
     "ControllerCommand",
     "FoxgloveClient",
+    "LocalApi",
     "MowerController",
     "ServerInfo",
     "Service",

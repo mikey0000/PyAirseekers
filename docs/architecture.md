@@ -21,6 +21,9 @@ are in `CONSTITUTION.md`; the reasons are in `decisions.md`.
 │ live.py — whep_play / whep_stop                               │
 │   SDP offer → SRS → SDP answer. No media handling (D10).      │
 ├──────────────────────────────────────────────────────────────┤
+│ local/http.py — LocalApi (port 13344)                         │
+│   map list, coverage/walk path; task start|pause|resume|stop| │
+│   dock|undock (D17). Envelope check → data or exception.      │
 │ local/control.py — MowerController (D15)                      │
 │   /controller/ctrl stop|pause: schema guard, call, confirm    │
 │   result. The library's only service caller.                  │
@@ -140,6 +143,8 @@ MowerController.stop()
 | Foxglove bridge unreachable or not Foxglove | `AirseekersTransportError` | none | retry later |
 | local command: schema changed, rejected (`result != 0`), `serviceCallFailure` | `AirseekersServiceError` | none | report; do not retry blindly |
 | local command: no answer in time, connection lost | `AirseekersTransportError` | pending calls failed | fall back to the cloud command |
+| local HTTP: envelope not a success | `AirseekersApiError(code=errorCode)` | none | report; the mower answered, do not repeat via the cloud |
+| local HTTP: unreachable, timeout, non-JSON 2xx | `AirseekersTransportError` | none | fall back to the cloud command |
 
 ## 3. Single homes
 
@@ -157,6 +162,7 @@ MowerController.stop()
 | Schema text: plain or base64? | `local/foxglove.py::decode_schema` |
 | ROS1 string bytes / schema field lines? | `local/ros1.py::encode_string` / `schema_fields` |
 | Which local commands are allowed, and is the schema still the verified one? | `local/control.py` (D15) |
+| Is a local HTTP response a success? | `local/http.py::LocalApi._request` |
 | What is the public API? | `pyairseekers/__init__.py::__all__` |
 
 ## 4. Extension recipes

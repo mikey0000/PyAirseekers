@@ -110,3 +110,13 @@ the behaviour-tree callers, but only `stop` is recorded as tested on
 hardware. Today: `MowerController` offers `stop` and `pause` only (D15).
 Closes when `resume` is run on a Tron (after a local `pause`, with `stop`
 ready) and its effect and `result` are recorded; then add the method.
+
+## Q17. Do the local HTTP task commands behave as the spec says?
+
+`/task/start {mapName}`, `/task/pause`, `/task/resume`, `/task/stop`,
+`/task/dock`, `/task/unDock` are used unverified (D17). Unknown: their
+responses when there is nothing to act on, whether `/task/start` uses the
+task stored on the mower (zones, cut height) or a default, whether a local
+pause is visible in the cloud's task state (compare Q15), and what
+`/task/start` does with no map. Closes with a start → pause → resume → stop →
+dock cycle on a Tron, recording each response and the mower's behaviour.

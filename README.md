@@ -6,6 +6,7 @@ Async Python client for the Airseekers Tron robotic mower.
 |---|---|---|
 | Cloud REST | `pyairseekers.AirseekersCloud` | commands, settings, tasks, maps, account data |
 | Local Foxglove bridge (`ws://<mower-ip>:8765`) | `pyairseekers.FoxgloveClient`, `pyairseekers.MowerController` | live telemetry; verified `stop` / `pause` |
+| Local HTTP API (`http://<mower-ip>:13344`) | `pyairseekers.LocalApi` | maps; task start / pause / resume / stop / dock (unverified, D17) |
 | WHEP on the vendor's SRS server | `pyairseekers.whep_play` | live camera video |
 | Cloud MQTT / BLE | `pyairseekers.mqtt` / `pyairseekers.ble` | experimental |
 

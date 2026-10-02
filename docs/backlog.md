@@ -24,6 +24,9 @@ Open work only; finished items are deleted.
   `/controller/dock/ctrl` arguments, `/cutter_control`, and `publish` for
   `/cmd_vel` once its watchdog is measured.
 
+- Verify the HTTP task commands on a Tron (Q17) and grade them verified, or
+  withdraw them; wrap `/robot/task/info` (WebSocket) as a push source.
+
 ## Documentation
 
 - Page for local topics with message fields observed per topic

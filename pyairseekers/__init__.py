@@ -9,7 +9,7 @@ from pyairseekers.exceptions import (
     AirseekersTransportError,
 )
 from pyairseekers.live import whep_play, whep_stop
-from pyairseekers.local import FoxgloveClient, MowerController, TriggerResult
+from pyairseekers.local import FoxgloveClient, LocalApi, MowerController, TriggerResult
 from pyairseekers.models import BLEDevice, IoTCert, LiveStream
 
 __all__ = [
@@ -23,10 +23,11 @@ __all__ = [
     "FoxgloveClient",
     "IoTCert",
     "LiveStream",
+    "LocalApi",
     "MowerController",
     "TriggerResult",
     "whep_play",
     "whep_stop",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

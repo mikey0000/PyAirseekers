@@ -164,3 +164,18 @@ and forgets channels, schemas and services. Reason: the review of D15 found a
 single bad frame ended the stream while `connected` stayed True, so Home
 Assistant's reconnect loop never ran, and a second `connect()` left the old
 loop failing the new connection's calls.
+
+## D17. The local HTTP task commands are used on the owner's decision
+
+`mower_logic` serves an unauthenticated HTTP API on port 13344
+(`local/http.py::LocalApi`). `GET /map/list` is verified on a Tron. The task
+commands (`/task/start`, `pause`, `resume`, `stop`, `dock`, `unDock`) come
+from the vendor's OpenAPI spec and have **not** been exercised on hardware;
+the owner directed that they be used anyway (2026-10-02), so they are graded
+*observed (vendor spec)* rather than verified. This is a deliberate exception
+to CONSTITUTION §2, recorded here rather than made silently. Mitigations:
+every response envelope is checked and a non-success raises; hosts are
+expected to fall back to the cloud only when the mower is unreachable, never
+after the mower answered. Map writes (`/map/save`, `/map/delete`,
+`/maping/*`) stay unwrapped: `/map/save` was seen to repoint the active map
+and leave the app showing no maps. Revisit when Q17 is closed.
