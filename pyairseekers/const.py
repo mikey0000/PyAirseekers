@@ -30,7 +30,13 @@ API_DEVICE_UNLOCK = "/api/web/device/unlock"
 API_FULL_STATUS = "/api/web/device/full-status"
 API_CONFIG = "/api/web/device/config"
 API_DEVICE_MAP = "/api/web/device/map"
+API_DEVICE_MAP_V2 = "/api/web/device/map/v2"
+API_MAP_GEO_DATA = "/api/web/device/map/geo-data"
 API_MAP_SWITCH = "/api/web/device/map/switch"
+API_EXPLORE_MAP_LATEST = "/api/web/device/explore-map/latest"
+API_MAINTENANCE_LIST = "/api/web/device/maintenance/list"
+API_SIM_ACTIVATION_STATUS = "/api/web/device/sim/activation-status"
+API_SIM_PACKAGE_INFO = "/api/web/device/sim/package-info"
 API_NOTIFY_LIST = "/api/web/device/notify/list"
 API_RTK_INFO = "/api/web/device/rtk/address-info"
 API_RTK_REBOOT = "/api/web/device/rtk-reboot"
@@ -56,6 +62,8 @@ API_VOICE_VERSION = "/api/web/voice-version/latest"
 
 API_LIVE_OPEN = "/api/web/live/open"
 API_LIVE_HEARTBEAT = "/api/web/live/heartbeat"
+API_LIVE_CAMERA_PARAMS = "/api/web/live/camera-params"
+API_LIVE_MOVE_CONTROL = "/api/web/live/move-control"
 
 # Camera indices accepted by /api/web/live/open (confirmed by the owner of a Tron)
 CAMERA_FRONT = 1

@@ -29,6 +29,12 @@ Device calls identify the mower by serial number `sn`.
 | `GET /api/web/device/full-status?sn=` | `get_full_status(sn)` | verified | sections: `battery_status`, `task_status` (`state` 0 idle 1 running 2 paused; `is_has_legacy_task`, `legacy_task_id`, `map_id`), `rtk_status`, `rtk_info`, `net_info` (`wifi_ip`, `wifi_dbm`, `wireless_4g_ip`), `sensor_status`, `version`, `upgrade_status`, `upgrade_mcu_status`, `voice_upgrade_status`, `explore_mapping_info` |
 | `GET /api/web/device/config?sn=` | `get_device_config(sn)` | verified | `data.configs`: string values; `SetVolume` 0-100, `SetLightBrightness` 0-100, `SetDarkMode` `"HH:MM-HH:MM"` or `""`, `DeviceLock`, `EnableNRTK`, `Net4GAllowUploadPicture` |
 | `GET /api/web/device/map?sn=` | `get_device_map(sn)` | verified | list of maps with `mapId`, `geoData` (GeoJSON; `properties.type` 1 = mowable zone with `name`, `id`) |
+| `GET /api/web/device/map/v2?sn=` | `get_device_map_v2(sn)` | observed | app v1.7.8 decompile; response shape unverified (raw mapping) |
+| `GET /api/web/device/map/geo-data?sn=&map_id=` | `get_map_geo_data(sn, map_id)` | observed | app v1.7.8 decompile; one map's GeoJSON by id; shape unverified |
+| `GET /api/web/device/explore-map/latest?sn=` | `get_explore_map_latest(sn)` | observed | app v1.7.8 decompile; latest exploration-mapping result; shape unverified |
+| `GET /api/web/device/maintenance/list?sn=` | `get_maintenance_list(sn)` | observed | app v1.7.8 decompile; maintenance reminders; shape unverified |
+| `GET /api/web/device/sim/activation-status?sn=` | `get_sim_activation_status(sn)` | observed | app v1.7.8 decompile; 4G SIM activation; shape unverified |
+| `GET /api/web/device/sim/package-info?sn=` | `get_sim_package_info(sn)` | observed | app v1.7.8 decompile; 4G SIM data package; shape unverified |
 | `GET /api/web/device/notify/list?sn=&page=&size=` | `get_notifications(sn)` | verified | `data.list[]` with `notify_class`, `notify_type`, `content`, `created_at` |
 | `GET /api/web/device/rtk/address-info?sn=` | `get_rtk_info(sn)` | verified | |
 | `GET /api/web/device/warranty/info?sn=` | `get_warranty(sn)` | verified | `start_at`, `end_at` |
@@ -76,6 +82,8 @@ app 30-90 step 10), `path_angle` (radians), `cut_speed` (1 slow, 2 normal,
 |---|---|---|---|
 | `POST /api/web/live/heartbeat` | `live_heartbeat(sn, camera)` | observed | `{sn, camera}` → `data: null`; keeps the stream alive; app seen calling it 38 s apart; the host calls it every `LIVE_HEARTBEAT_INTERVAL_S` (20 s) while viewing (Q12) |
 | `POST /api/web/live/open` | `open_live_stream(sn, camera) -> str` | verified | `{sn, camera}` (1 front, 2 left, 3 right) → `{url}`; see [live](live.md); the URL is a secret (D13) |
+| `GET /api/web/live/camera-params?sn=` | `get_camera_params(sn)` | observed | app v1.7.8 decompile; response shape unverified (raw mapping) |
+| `POST /api/web/live/move-control` | `move_control(sn, linear_x, angular_z)` | observed | app v1.7.8 decompile; body `{sn, linear_x, angular_z}`; **moves the mower** (cloud teleop, D14). One command per call; caller loops and stops (send `0, 0`). Ranges and stop-on-silence unverified (Q14) |
 
 ## Codes seen
 

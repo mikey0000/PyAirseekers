@@ -16,9 +16,11 @@ from pyairseekers.const import (
     API_DEVICE_BIND,
     API_DEVICE_LOCK,
     API_DEVICE_MAP,
+    API_DEVICE_MAP_V2,
     API_DEVICE_UNBIND,
     API_DEVICE_UNLOCK,
     API_DEVICES,
+    API_EXPLORE_MAP_LATEST,
     API_EXTENDED_WARRANTY,
     API_FILL_LIGHT,
     API_FIRMWARE_LATEST,
@@ -26,13 +28,19 @@ from pyairseekers.const import (
     API_FULL_STATUS,
     API_IOT_CERT,
     API_IS_AUTHORIZED,
+    API_LIVE_CAMERA_PARAMS,
     API_LIVE_HEARTBEAT,
+    API_LIVE_MOVE_CONTROL,
     API_LIVE_OPEN,
+    API_MAINTENANCE_LIST,
+    API_MAP_GEO_DATA,
     API_MAP_SWITCH,
     API_NOTIFY_LIST,
     API_NRTK_SUPPORTED,
     API_RTK_INFO,
     API_RTK_REBOOT,
+    API_SIM_ACTIVATION_STATUS,
+    API_SIM_PACKAGE_INFO,
     API_TASK,
     API_TASK_DOCK,
     API_TASK_LATEST,
@@ -192,6 +200,29 @@ class AirseekersCloud:
         """Return the device maps, each with GeoJSON ``geoData``."""
         return _list(await self._get(API_DEVICE_MAP, sn))
 
+    async def get_device_map_v2(self, sn: str) -> JsonObject:
+        """Return the v2 device-map payload.
+
+        Observed in app v1.7.8 (GET, ``sn``); the response shape is not yet
+        verified, so the raw mapping is returned (Q13).
+        """
+        return _obj(await self._get(API_DEVICE_MAP_V2, sn))
+
+    async def get_map_geo_data(self, sn: str, map_id: str) -> JsonObject:
+        """Return a single map's GeoJSON ``geoData`` by ``map_id``.
+
+        Observed in app v1.7.8 (GET, ``sn`` + ``map_id``); response shape not
+        yet verified, so the raw mapping is returned.
+        """
+        return _obj(await self._get(API_MAP_GEO_DATA, sn, map_id=map_id))
+
+    async def get_explore_map_latest(self, sn: str) -> JsonObject:
+        """Return the latest exploration-mapping result.
+
+        Observed in app v1.7.8 (GET, ``sn``); response shape not yet verified.
+        """
+        return _obj(await self._get(API_EXPLORE_MAP_LATEST, sn))
+
     async def get_notifications(self, sn: str, page: int = 1, size: int = 10) -> list[JsonObject]:
         """Return device notifications, newest first."""
         return _list(_obj(await self._get(API_NOTIFY_LIST, sn, page=page, size=size)).get("list"))
@@ -211,6 +242,27 @@ class AirseekersCloud:
     async def get_nrtk_supported(self, sn: str) -> JsonObject:
         """Return whether network RTK is available at the device location."""
         return _obj(await self._get(API_NRTK_SUPPORTED, sn))
+
+    async def get_maintenance_list(self, sn: str) -> JsonObject:
+        """Return the device maintenance items/reminders.
+
+        Observed in app v1.7.8 (GET, ``sn``); response shape not yet verified.
+        """
+        return _obj(await self._get(API_MAINTENANCE_LIST, sn))
+
+    async def get_sim_activation_status(self, sn: str) -> JsonObject:
+        """Return the 4G SIM activation status.
+
+        Observed in app v1.7.8 (GET, ``sn``); response shape not yet verified.
+        """
+        return _obj(await self._get(API_SIM_ACTIVATION_STATUS, sn))
+
+    async def get_sim_package_info(self, sn: str) -> JsonObject:
+        """Return the 4G SIM data-package info.
+
+        Observed in app v1.7.8 (GET, ``sn``); response shape not yet verified.
+        """
+        return _obj(await self._get(API_SIM_PACKAGE_INFO, sn))
 
     async def get_voice_version(self, sn: str) -> JsonObject:
         """Return voice pack versions (current, new, upgradable)."""
@@ -374,3 +426,27 @@ class AirseekersCloud:
         schedules it; the host does, for as long as someone is watching.
         """
         await self._post(API_LIVE_HEARTBEAT, sn, {"camera": camera})
+
+    async def get_camera_params(self, sn: str) -> JsonObject:
+        """Return live camera parameters.
+
+        Observed in app v1.7.8 (GET, ``sn``); response shape not yet verified,
+        so the raw mapping is returned.
+        """
+        return _obj(await self._get(API_LIVE_CAMERA_PARAMS, sn))
+
+    async def move_control(self, sn: str, *, linear_x: float, angular_z: float) -> None:
+        """Send one teleop velocity command: ``linear_x`` forward, ``angular_z`` yaw.
+
+        This MOVES THE MOWER (cloud teleop; D14). It sends a single command and
+        returns; it does not loop. ``linear_x`` and ``angular_z`` are normalized
+        to about ``[-1.0, 1.0]`` (the app sends ``joystick_int * 0.01`` with the
+        joystick clamped to ~±100; magnitudes below ~0.10 are a deadzone). Not
+        m/s or rad/s. Ranges are observed from app v1.7.8 decompile, not yet
+        verified on a Tron (Q14).
+
+        Teleop needs a repeating stream and a stop; that is the caller's job, as
+        with ``live_heartbeat``. The app re-sends at least every ~250 ms while
+        moving, and to STOP sends ``(0, 0)`` twice about 50 ms apart.
+        """
+        await self._post(API_LIVE_MOVE_CONTROL, sn, {"linear_x": linear_x, "angular_z": angular_z})

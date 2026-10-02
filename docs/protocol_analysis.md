@@ -245,3 +245,73 @@ Communication utilities in:
 - `package:airseekers/network/mqtt_client.dart`
 - `package:airseekers/utils/blue_tooth_util.dart`
 - `package:airseekers/utils/bluetooth_protocol.dart`
+---
+
+## mower_proto message & enum catalogue (app v1.7.8 decompile, 2026-10)
+
+Recovered with blutter from `libapp.so` (Dart 3.11). These types back the MQTT
+channel (`network/mqttRsp/*`) and BLE. **Caveat:** the release build was
+compiled with protobuf `_omitFieldNames`, so message field names are stripped —
+only class names survive. Field tags and wire types remain in the `BuilderInfo`
+(recoverable from asm); semantics for an unnamed field need a traffic capture
+(Q10). Promotion to `verified` needs such a capture. **Exception:** `ProtobufEnum`
+*value* names survive (they are objects, not omitted), so the `MsgType`
+discriminator values are fully recovered — see `docs/api/mqtt.md` for the
+topic↔MsgType map.
+
+| Module | Messages | Enums |
+|---|---|---|
+| common | Response, Point, Pose, Polygon, TrackPoint | TrackPoint_Type |
+| init | Config, Config_Request | — |
+| config | GetConfigRsp, SetConfigRsp, RebootRTKRsp | GetConfigRsp_ErrorCode, SetConfigRsp_ErrorCode |
+| map | CreateMapRsp, MapPoint, MapPose, ExploreMapInfoRsp, GetExploreMapBoundaryReq/Rsp, GetExploreMapTrackRsp, BleMappingMode | CreateMapRsp_ErrorCode, MapPoint_Type, MapPose_Type, ExploreMapInfoRsp_State, BleMappingMode_Type, BleMappingMode_Result |
+| rtk | RTKinfo, RTKinfoRsp, Quality, BaseInfo, FixedStation, BindRTK, BindRTK_Request | — |
+| status | FullStatusRsp, BatteryStatusRsp, NetInfoRsp, RtkStatusRsp, SensorStatusRsp, LidarStatusRsp, TaskStatusRsp, MowTaskInfo, NoticeRsp, VersionReq/Rsp, DeviceOnlineStatusRsp, RTT | TaskStatusRsp_Type, TaskStatusRsp_State, NetCardNumber |
+| task | TaskUnit, SetMowTaskParamsReq/Rsp, TaskReportReq, GetTrackReq/Rsp, UnDockRsp, ObstacleDynamicBoundaryRsp, ObstacleDynamicClearRsp | CutMode, CutSpeed, TurningMode, ObsStrategy, TaskReportReq_TaskType/StartType/ResultType, SetMowTaskParamsRsp_ErrorCode, UnDockRsp_ErrorCode |
+| teleop | TeleopMode | TeleopMode_Type, TeleopMode_Cutter, TeleopMode_Result |
+| msg | Msg | MsgType |
+| upgrade | UpgradeStatusRsp | UpgradeStatusRsp_State, UpgradeStatusRsp_Step |
+| upgrade_mcu | UpgradeMCUStatusReq | UpgradeMCUStatusReq_State, UpgradeMCUStatusReq_Step, MCUType |
+
+Cross-check: `task` enums `CutMode`/`CutSpeed`/`TurningMode`/`ObsStrategy`
+correspond to the cloud `task_units` fields `cut_mode`/`cut_speed`/
+`truning_mode`/`strategy` (`const.py` lookups), and `MsgType` is the top-level
+MQTT message discriminator (values stripped).
+
+---
+
+## BLE control surface (app v1.7.8 decompile, 2026-10)
+
+From `utils/bluetooth_protocol.dart` (`Protocol` class), `utils/blueManager.dart`
+and `model/bluetooth_package_type.dart`. BLE is a vendor-blessed **local** command
+path (unlike the Foxglove bridge, CONSTITUTION §2), still experimental here (D9).
+
+**GATT UUIDs** (`blueManager.dart`): short-form `00FE`, `FA01`, `FA03`, and
+`C1DB0001` / `C1DB0002` / `C1DB0004` (expand against the BT base UUID). `FA01`
+appears as the write characteristic and `FA03` as notify; the `C1DB000x` set is
+the alternate/data service. Scan name filter: advertises as `Airseekers` / `Tron`.
+
+**Framing:** `Protocol.escapeProcess` applies byte-stuffing (escape bytes) around
+a packetised payload; replies are reassembled by `utils/bluetooth_notify_decoder.dart`
+into `model/bluetooth_notify.dart` (package kinds in `model/bluetooth_package_type.dart`).
+
+**Commands** (`Protocol` methods — these are the BLE controls):
+
+| Method | Does |
+|---|---|
+| `setJoystick`, `setJoystickV3` | Teleop drive (joystick); **moves the mower** |
+| `remoteControlMode` | Enter/exit remote-control mode |
+| `generateStartMap`, `generateStopMap` | Start/stop map building |
+| `generateGetSpecialPoint` | Query a special point (e.g. dock) |
+| `setNetWorkNew` | Wi-Fi provisioning (send SSID/password to the robot) |
+| `bindRTK` | Bind the RTK base station |
+| `sendCountryCode` | Set region/country code |
+| `setBindDeviceBleData` | Bind the device over BLE |
+| `getDeviceLocation` | Request GPS location |
+| `closePowerSavingMode` | Disable power saving |
+| `blueClearAlarmData` | Clear alarm/fault state |
+| `heartbeat` | Keepalive |
+
+Payload byte layouts are not yet captured; wrapping any of the motion/mapping
+commands as a local command needs a decision entry and on-device verification,
+exactly as the Foxglove bridge does (§2).
